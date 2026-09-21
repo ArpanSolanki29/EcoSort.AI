@@ -87,7 +87,7 @@ Return ONLY valid JSON with these keys:
 Use general when uncertain. Do not invent local recycling rules. Confidence must be between 0 and 1."""
 
     primary_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
-    fallback_models = os.getenv("GEMINI_FALLBACK_MODELS", "gemini-2.5-flash").split(",")
+    fallback_models = os.getenv("GEMINI_FALLBACK_MODELS", "gemini-3.1-flash-lite").split(",")
     models = list(dict.fromkeys([primary_model] + [model.strip() for model in fallback_models if model.strip()]))
     last_error = None
 
