@@ -76,7 +76,7 @@ Return ONLY valid JSON with these keys:
 {"item":"short item name","category":"one of organic, recyclable, e_waste, hazardous, general","confidence":0.0,"reason":"one sentence","preparation":"short disposal preparation instruction"}
 Use general when uncertain. Do not invent local recycling rules. Confidence must be between 0 and 1."""
     response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", "gemini-2.0-flash"),
+        model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
         contents=[
             types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
             prompt,
