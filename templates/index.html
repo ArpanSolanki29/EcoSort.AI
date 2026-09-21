@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EcoSort AI — Sort smarter</title>
+  <meta name="description" content="Identify waste and discover the right disposal category with EcoSort AI.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="nav wrap"><a class="brand" href="/"><span class="brand-mark">✦</span> EcoSort<span class="accent">.AI</span></a><span class="sdg">SDG 12 · responsible consumption</span></header>
+  <main class="wrap">
+    <section class="hero"><div class="eyebrow">WASTE, REIMAGINED</div><h1>Give your waste<br><em>a better next life.</em></h1><p class="hero-copy">Snap or upload a photo. EcoSort AI identifies what it is and guides you to the right disposal category.</p></section>
+    <section class="workspace">
+      <form id="upload-form" class="drop-card">
+        <input id="image-input" name="image" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+        <div id="drop-zone" class="drop-zone"><div class="upload-icon">↑</div><h2>Drop an image here</h2><p>or click to browse · JPG, PNG, WEBP up to 10 MB</p><button type="button" id="browse-button" class="button secondary">Choose image</button></div>
+        <div id="preview-wrap" class="preview-wrap hidden"><img id="preview" alt="Selected waste item"><button type="button" id="remove-button" class="remove">Remove image</button></div>
+        <button id="analyze-button" class="button primary" type="submit" disabled>Analyze my waste <span>→</span></button>
+      </form>
+      <section id="result-card" class="result-card" aria-live="polite"><div class="result-empty"><div class="sparkle">✦</div><h2>Your sorting guide</h2><p>Upload an image to see its category, preparation tips, and a more sustainable next step.</p></div></section>
+    </section>
+    <div class="notice"><span>♧</span><p><strong>Small choices, big impact.</strong> Correct segregation keeps valuable materials in circulation and reduces landfill waste. When in doubt, check your local waste authority.</p></div>
+    <section class="categories"><div><span class="dot green"></span><strong>Organic</strong><small>Compostable</small></div><div><span class="dot blue"></span><strong>Recyclable</strong><small>Clean & dry</small></div><div><span class="dot purple"></span><strong>E-waste</strong><small>Special collection</small></div><div><span class="dot red"></span><strong>Hazardous</strong><small>Handle with care</small></div></section>
+  </main>
+  <footer class="wrap footer">EcoSort AI · Built for a cleaner tomorrow</footer>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
