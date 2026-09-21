@@ -3,6 +3,7 @@ import json
 import mimetypes
 import os
 import re
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -61,6 +62,15 @@ def clean_json(text: str) -> dict:
     return json.loads(match.group(0))
 
 
+def _is_retryable_gemini_error(error: Exception) -> bool:
+    """Return true for temporary quota/service failures, not bad requests or auth errors."""
+    status = getattr(error, "status_code", None)
+    if status in {429, 500, 502, 503, 504}:
+        return True
+    # Some google-genai versions expose the status only in the exception text.
+    return any(code in str(error) for code in (" 429 ", " 500 ", " 502 ", " 503 ", " 504 "))
+
+
 def classify_with_gemini(file_bytes: bytes, mime_type: str) -> dict:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -75,21 +85,42 @@ def classify_with_gemini(file_bytes: bytes, mime_type: str) -> dict:
 Return ONLY valid JSON with these keys:
 {"item":"short item name","category":"one of organic, recyclable, e_waste, hazardous, general","confidence":0.0,"reason":"one sentence","preparation":"short disposal preparation instruction"}
 Use general when uncertain. Do not invent local recycling rules. Confidence must be between 0 and 1."""
-    response = client.models.generate_content(
-        model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
-        contents=[
-            types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
-            prompt,
-        ],
-        config=types.GenerateContentConfig(temperature=0.1, response_mime_type="application/json"),
-    )
-    result = clean_json(response.text)
-    category = str(result.get("category", "general")).lower().strip()
-    if category not in CATEGORIES:
-        category = "general"
-    result["category"] = category
-    result["confidence"] = max(0, min(1, float(result.get("confidence", 0.5))))
-    return result
+
+    primary_model = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
+    fallback_models = os.getenv("GEMINI_FALLBACK_MODELS", "gemini-2.5-flash").split(",")
+    models = list(dict.fromkeys([primary_model] + [model.strip() for model in fallback_models if model.strip()]))
+    last_error = None
+
+    for model in models:
+        # 503 means the selected model is temporarily overloaded. Retry with
+        # backoff, then try the configured fallback model if it remains unavailable.
+        for attempt in range(3):
+            try:
+                response = client.models.generate_content(
+                    model=model,
+                    contents=[
+                        types.Part.from_bytes(data=file_bytes, mime_type=mime_type),
+                        prompt,
+                    ],
+                    config=types.GenerateContentConfig(
+                        temperature=0.1,
+                        response_mime_type="application/json",
+                    ),
+                )
+                result = clean_json(response.text)
+                category = str(result.get("category", "general")).lower().strip()
+                if category not in CATEGORIES:
+                    category = "general"
+                result["category"] = category
+                result["confidence"] = max(0, min(1, float(result.get("confidence", 0.5))))
+                return result
+            except Exception as error:
+                last_error = error
+                if not _is_retryable_gemini_error(error) or attempt == 2:
+                    break
+                time.sleep(2 ** attempt)
+
+    raise RuntimeError("Gemini is temporarily unavailable after retries") from last_error
 
 
 def demo_result(filename: str) -> dict:
@@ -125,7 +156,7 @@ def classify():
             result = demo_result(uploaded.filename)
         else:
             app.logger.exception("Image classification failed")
-            return jsonify({"error": f"Could not analyze the image: {error}"}), 502
+            return jsonify({"error": "The image service is temporarily unavailable. Please try again."}), 503
 
     result["category_details"] = CATEGORIES[result["category"]]
     return jsonify(result)
